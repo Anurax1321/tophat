@@ -13,41 +13,54 @@ if __name__ == '__main__':
 
     # Configure Chrome options
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in background
+    chrome_options.add_argument("--headless")  # run in background
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
 
-    # Initialize WebDriver
+    # Initialize the WebDriver
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    # Target URL
+    # Target URL (update this as needed)
     url = "https://app.tophat.com/e/013778/lecture"
+    driver.get(url)
+    time.sleep(5)  # Wait for the page to load
 
-    # Run the bot for 1 hour (60 minutes) checking every 30 seconds
-    end_time = time.time() + 3600  # 1 hour from now
+    try:
+        # Locate the question container using the class name.
+        # Note: Sometimes you may need to use a CSS selector to match the full class string.
+        container = driver.find_element(By.CSS_SELECTOR, "div.QuestionWrapperstyles__Fieldset-sc-g4w8f0-3.fIsVvR")
 
-    while time.time() < end_time:
+        # Attempt to extract the question text.
+        # This assumes there's a child element that holds the text. Adjust the selector as necessary.
         try:
-            driver.get(url)
-            time.sleep(5)  # Wait for the page to load
+            question_text = container.find_element(By.CSS_SELECTOR, ".question-text").text
+        except Exception:
+            # If the inner element has no distinct class, you might need to adjust or get text directly.
+            question_text = container.text.split("\n")[0]  # example fallback
 
-            # Look for the question wrapper class
-            elements = driver.find_elements(By.CLASS_NAME, "QuestionWrapperstyles__Fieldset-sc-g4w8f0-3")
+        print("Question:", question_text)
 
-            if elements:
-                print("✅ Question detected!")
-                # Send a notification (Optional)
-                # You can use an email, webhook, or desktop notification
-            else:
-                print("⏳ No question found, checking again in 30 sec...")
+        # Find all options (assumes options are <li> elements with class 'option')
+        options = container.find_elements(By.CSS_SELECTOR, "li.option")
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        if options:
+            print("Options:")
+            for idx, option in enumerate(options, start=1):
+                print(f"  {idx}. {option.text}")
+        else:
+            print("No options found with the selector 'li.option'.")
 
-        time.sleep(30)  # Wait before checking again
+        # OPTIONAL: If you want to select (click) an option, for example, option 2:
+        if len(options) >= 2:
+            print("Clicking on the second option...")
+            options[1].click()
+        else:
+            print("Not enough options available to perform a click.")
 
-    # Close the browser after finishing
+    except Exception as e:
+        print(f"Error while processing the question container: {e}")
+
     driver.quit()
-    print("✅ Done! 1-hour monitoring complete.")
+
 
